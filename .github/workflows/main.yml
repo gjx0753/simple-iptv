@@ -8,6 +8,10 @@ on:
     - cron: '18 14 * * *' # UTC 14:18 (北京时间 22:18)
   workflow_dispatch:      # 允许手动触发
 
+# 👇 添加这个配置，给 Actions 写权限
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -15,6 +19,9 @@ jobs:
     steps:
       - name: Checkout Repo
         uses: actions/checkout@v4
+        with:
+          # 👇 添加这个，确保获取完整历史记录
+          fetch-depth: 0
 
       - name: Set up Python
         uses: actions/setup-python@v5
