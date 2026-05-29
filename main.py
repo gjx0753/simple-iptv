@@ -40,43 +40,40 @@ def extract_entries(m3u_text, keywords):
                 entries.append(lines[i + 1])
     return entries
 
-    # # keyword -> list of (extinf_line, url_line)
-    # candidate_map = {key: [] for key in keywords}
-    #
-    # lines = m3u_text.strip().splitlines()
-    # i = 0
-    # while i < len(lines):
-    #     if lines[i].startswith('#EXTINF'):
-    #         extinf = lines[i]
-    #         if i + 1 < len(lines):
-    #             url = lines[i + 1]
-    #             for key in keywords:
-    #                 if key in extinf:
-    #                     candidate_map[key].append((extinf, url))
-    #                     break
-    #         i += 2
-    #     else:
-    #         i += 1
-    #
-    # final_entries = []
-    # for key, candidates in candidate_map.items():
-    #     if not candidates:
-    #         continue
-    #
-    #     # 测速所有候选
-    #     best = None
-    #     best_ttfb = float('inf')
-    #     for extinf, url in candidates:
-    #         ttfb = test_m3u8_speed(url)
-    #         print(f"测速中：[{key}] {url} -> TTFB: {ttfb:.0f}ms")
-    #         if ttfb != float('inf') and ttfb < best_ttfb:
-    #             best_ttfb = ttfb
-    #             best = (extinf, url)
-    #
-    #     if best:
-    #         final_entries.extend(best)
-    #
-    # return final_entries
+
+def parse_channel_name(extinf_line):
+    """从 #EXTINF 行中提取频道名称"""
+    try:
+        # 格式: #EXTINF:-1 tvg-id="..." tvg-name="..." group-title="...",频道名
+        if ',' in extinf_line:
+            channel_name = extinf_line.split(',')[-1].strip()
+            return channel_name if channel_name else "未知频道"
+    except:
+        pass
+    return "未知频道"
+
+
+def extract_channels_info(lines):
+    """解析 M3U 行列表，返回 [(频道名, URL), ...] 格式"""
+    channels = []
+    i = 0
+    while i < len(lines):
+        line = lines[i].strip()
+        
+        if line.startswith('#EXTINF'):
+            # 提取频道名
+            channel_name = parse_channel_name(line)
+            
+            # 获取下一行的 URL
+            if i + 1 < len(lines):
+                next_line = lines[i + 1].strip()
+                if next_line and not next_line.startswith('#'):
+                    channels.append((channel_name, next_line))
+                    i += 2
+                    continue
+        i += 1
+    
+    return channels
 
 
 if __name__ == '__main__':
@@ -99,9 +96,22 @@ if __name__ == '__main__':
     # 4. 合并所有条目
     combined_entries += bbc_entries + zh_entries
 
-    # 5. 保存到 simple.m3u
-    with open('simple.m3u', 'w', encoding='utf-8') as f:
-        for line in combined_entries:
-            f.write(f"{line.strip()}\n")
+    # 5. 解析频道信息（频道名 + URL）
+    channels_info = extract_channels_info(combined_entries)
 
-    print("✅ simple.m3u 生成完成")
+    # 6. 保存为 M3U 格式
+    with open('simple.m3u', 'w', encoding='utf-8') as f:
+        # 写入 M3U 文件头
+        f.write('#EXTM3U\n')
+        for channel_name, url in channels_info:
+            f.write(f'#EXTINF:-1,{channel_name}\n')
+            f.write(f'{url}\n')
+
+    # 7. 保存为 TXT 格式
+    with open('simple.txt', 'w', encoding='utf-8') as f:
+        for channel_name, url in channels_info:
+            f.write(f'{channel_name},{url}\n')
+
+    print(f"✅ 生成完成！")
+    print(f"   📄 simple.m3u - {len(channels_info)} 个频道")
+    print(f"   📄 simple.txt  - {len(channels_info)} 个频道")
