@@ -1,9 +1,12 @@
-name: Update simple.m3u daily
+name: Update IPTV List
 
 on:
   schedule:
-    - cron: '20 3 * * *'  # 每天 UTC 时间 03:20 执行（北京时间 11:20）
-  workflow_dispatch:     # 允许手动触发
+    - cron: '18 2 * * *'  # UTC 02:18 (北京时间 10:18)
+    - cron: '18 6 * * *'  # UTC 06:18 (北京时间 14:18)
+    - cron: '18 10 * * *' # UTC 10:18 (北京时间 18:18)
+    - cron: '18 14 * * *' # UTC 14:18 (北京时间 22:18)
+  workflow_dispatch:      # 允许手动触发
 
 jobs:
   build:
@@ -28,11 +31,11 @@ jobs:
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add simple.m3u
+          git add simple.m3u simple.txt
           if git diff --cached --quiet; then
             echo "✅ No changes to commit."
           else
-            COMMIT_DATE=$(TZ="Etc/GMT+8" date +"%Y-%m-%d")
-            git commit -m "🔄 Daily update simple.m3u - $COMMIT_DATE"
+            COMMIT_DATE=$(TZ="Etc/GMT+8" date +"%Y-%m-%d %H:%M")
+            git commit -m "🔄 Auto update - $COMMIT_DATE"
             git push
           fi
